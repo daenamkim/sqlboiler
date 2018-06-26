@@ -11,7 +11,7 @@ This is a fork of the sqlboiler project with one key difference: Postgres numeri
 instead of Float64. Be sure to install this sqlboiler before running the command locally with your own project like so:
 
 ```sh
-go install github.com/ann-kilzer/sqlboiler
+go get github.com/ann-kilzer/sqlboiler
 ```
 
 ## Overview
