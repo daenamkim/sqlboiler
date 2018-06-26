@@ -8,11 +8,10 @@
 ## 🍴🍴🍴 Fork Notes 🍴🍴🍴
 
 This is a fork of the sqlboiler project with one key difference: Postgres numeric types are converted to strings
-instead of Float64. Be sure to reinstall this sqlboiler before running the command locally with your own project like so:
+instead of Float64. Be sure to install this sqlboiler before running the command locally with your own project like so:
 
 ```sh
-cd $GOPATH/src/github.com/ann-kilzer/sqlboiler
-go install
+go install github.com/ann-kilzer/sqlboiler
 ```
 
 ## Overview
