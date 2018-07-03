@@ -175,6 +175,7 @@ func newImporter() importer {
 			`"github.com/curvegrid/sqlboiler/queries"`,
 			`"github.com/curvegrid/sqlboiler/queries/qm"`,
 			`"github.com/curvegrid/sqlboiler/strmangle"`,
+			`"github.com/curvegrid/sqlboiler/marshal"`,
 		},
 	}
 

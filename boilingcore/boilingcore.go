@@ -12,21 +12,21 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/curvegrid/sqlboiler/bdb"
 	"github.com/curvegrid/sqlboiler/bdb/drivers"
 	"github.com/curvegrid/sqlboiler/queries"
 	"github.com/curvegrid/sqlboiler/strmangle"
+	"github.com/pkg/errors"
 )
 
 const (
-	templatesDirectory          = "templates"
-	templatesSingletonDirectory = "templates/singleton"
+	templatesDirectory          = "curvegrid_templates"
+	templatesSingletonDirectory = "curvegrid_templates/singleton"
 
-	templatesTestDirectory          = "templates_test"
-	templatesSingletonTestDirectory = "templates_test/singleton"
+	templatesTestDirectory          = "curvegrid_templates_test"
+	templatesSingletonTestDirectory = "curvegrid_templates_test/singleton"
 
-	templatesTestMainDirectory = "templates_test/main_test"
+	templatesTestMainDirectory = "curvegrid_templates_test/main_test"
 )
 
 // State holds the global data needed by most pieces to run
