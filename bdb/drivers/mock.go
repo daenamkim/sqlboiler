@@ -1,8 +1,8 @@
 package drivers
 
 import (
-	"github.com/ann-kilzer/sqlboiler/bdb"
-	"github.com/ann-kilzer/sqlboiler/strmangle"
+	"github.com/curvegrid/sqlboiler/bdb"
+	"github.com/curvegrid/sqlboiler/strmangle"
 )
 
 // MockDriver is a mock implementation of the bdb driver Interface

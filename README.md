@@ -1,7 +1,7 @@
 ![sqlboiler logo](http://i.imgur.com/ilkv0r9.png)
 
-[![License](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/ann-kilzer/sqlboiler/blob/master/LICENSE)
-[![GoDoc](https://godoc.org/github.com/ann-kilzer/sqlboiler?status.svg)](https://godoc.org/github.com/ann-kilzer/sqlboiler)
+[![License](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/curvegrid/sqlboiler/blob/master/LICENSE)
+[![GoDoc](https://godoc.org/github.com/curvegrid/sqlboiler?status.svg)](https://godoc.org/github.com/curvegrid/sqlboiler)
 [![Mail](https://img.shields.io/badge/mail%20list-sqlboiler-lightgrey.svg)](https://groups.google.com/a/volatile.tech/forum/#!forum/sqlboiler)
 
 
@@ -131,7 +131,7 @@ For a comprehensive list of available operations and examples please see [Featur
 ```go
 import (
   // Import this so we don't have to use qm.Limit etc.
-  . "github.com/ann-kilzer/sqlboiler/queries/qm"
+  . "github.com/curvegrid/sqlboiler/queries/qm"
 )
 
 // Open handle to database like normal
@@ -223,7 +223,7 @@ fmt.Println(len(users.R.FavoriteMovies))
 #### Download
 
 ```shell
-go get -u -t github.com/ann-kilzer/sqlboiler
+go get -u -t github.com/curvegrid/sqlboiler
 ```
 
 #### Configuration
@@ -304,7 +304,7 @@ generate models for, we can invoke the sqlboiler command line utility.
 
 ```text
 SQL Boiler generates a Go ORM from template files, tailored to your database schema.
-Complete documentation is available at http://github.com/ann-kilzer/sqlboiler
+Complete documentation is available at http://github.com/curvegrid/sqlboiler
 
 Usage:
   sqlboiler [flags] <driver>
@@ -634,7 +634,7 @@ when performing query building. Here is a list of all of your generated query mo
 
 ```go
 // Dot import so we can access query mods directly instead of prefixing with "qm."
-import . "github.com/ann-kilzer/sqlboiler/queries/qm"
+import . "github.com/curvegrid/sqlboiler/queries/qm"
 
 // Use a raw query against a generated struct (Pilot in this example)
 // If this query mod exists in your call, it will override the others.
@@ -745,7 +745,7 @@ in combination with your own custom, non-generated model.
 
 ### Binding
 
-For a comprehensive ruleset for `Bind()` you can refer to our [godoc](https://godoc.org/github.com/ann-kilzer/sqlboiler/queries#Bind).
+For a comprehensive ruleset for `Bind()` you can refer to our [godoc](https://godoc.org/github.com/curvegrid/sqlboiler/queries#Bind).
 
 The `Bind()` [Finisher](#finisher) allows the results of a query built with
 the [Raw SQL](#raw-query) method or the [Query Builder](#query-building) methods to be bound
@@ -999,7 +999,7 @@ tx.Rollback()
 ```
 
 It's also worth noting that there's a way to take advantage of `boil.SetDB()`
-by using the [boil.Begin()](https://godoc.org/github.com/ann-kilzer/sqlboiler/boil#Begin) function.
+by using the [boil.Begin()](https://godoc.org/github.com/curvegrid/sqlboiler/boil#Begin) function.
 This opens a transaction using the globally stored database.
 
 ### Debug Logging
@@ -1306,8 +1306,8 @@ You *must* use a DSN flag in MySQL connections, see: [Requirements](#requirement
 
 #### Where is the homepage?
 
-The homepage for the [SQLBoiler](https://github.com/ann-kilzer/sqlboiler) [Golang ORM](https://github.com/ann-kilzer/sqlboiler)
-generator is located at: https://github.com/ann-kilzer/sqlboiler
+The homepage for the [SQLBoiler](https://github.com/curvegrid/sqlboiler) [Golang ORM](https://github.com/curvegrid/sqlboiler)
+generator is located at: https://github.com/curvegrid/sqlboiler
 
 ## Benchmarks
 

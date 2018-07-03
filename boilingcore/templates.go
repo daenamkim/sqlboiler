@@ -9,9 +9,9 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	"github.com/ann-kilzer/sqlboiler/bdb"
-	"github.com/ann-kilzer/sqlboiler/queries"
-	"github.com/ann-kilzer/sqlboiler/strmangle"
+	"github.com/curvegrid/sqlboiler/bdb"
+	"github.com/curvegrid/sqlboiler/queries"
+	"github.com/curvegrid/sqlboiler/strmangle"
 )
 
 // templateData for sqlboiler templates

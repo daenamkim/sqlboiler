@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/ann-kilzer/sqlboiler/boil"
-	"github.com/ann-kilzer/sqlboiler/strmangle"
+	"github.com/curvegrid/sqlboiler/boil"
+	"github.com/curvegrid/sqlboiler/strmangle"
 	"github.com/pkg/errors"
 )
 

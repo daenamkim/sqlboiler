@@ -16,8 +16,8 @@ import (
 
 	null "gopkg.in/volatiletech/null.v6"
 
-	"github.com/ann-kilzer/sqlboiler/strmangle"
-	"github.com/ann-kilzer/sqlboiler/types"
+	"github.com/curvegrid/sqlboiler/strmangle"
+	"github.com/curvegrid/sqlboiler/types"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )

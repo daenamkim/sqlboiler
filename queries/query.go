@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/ann-kilzer/sqlboiler/boil"
+	"github.com/curvegrid/sqlboiler/boil"
 )
 
 // joinKind is the type of join

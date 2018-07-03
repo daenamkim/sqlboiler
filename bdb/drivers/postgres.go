@@ -8,8 +8,8 @@ import (
 
 	// Side-effect import sql driver
 
-	"github.com/ann-kilzer/sqlboiler/bdb"
-	"github.com/ann-kilzer/sqlboiler/strmangle"
+	"github.com/curvegrid/sqlboiler/bdb"
+	"github.com/curvegrid/sqlboiler/strmangle"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 )

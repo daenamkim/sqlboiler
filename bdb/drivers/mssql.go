@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/ann-kilzer/sqlboiler/bdb"
+	"github.com/curvegrid/sqlboiler/bdb"
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/pkg/errors"
 )

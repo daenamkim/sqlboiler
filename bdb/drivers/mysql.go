@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ann-kilzer/sqlboiler/bdb"
+	"github.com/curvegrid/sqlboiler/bdb"
 	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 )
