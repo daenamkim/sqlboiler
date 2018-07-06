@@ -10,10 +10,14 @@ func (o *{{$tableNameSingular}}) MarshalJSONFilter(includeFields []string, exclu
 
 // MarshalJSON will marshal the object into JSON and include all fields
 func (o *{{$tableNameSingular}}) MarshalJSON() ([]byte, error) {
-   return o.MarshalJSONFilter([]string{"ID"}, nil)
+   return o.MarshalJSONFilter(nil, nil)
 }
 
-// func (o *{{$tableNameSingular}}) UnmarshalJSON(data []byte) error {
+func (t *Transaction) JSONFilter(includeFields []string, excludeFields []string) (res map[string]interface{}, err error) {
+	return marshal.MarshalJSONFilter(t, nil, nil)
+}
+
+// func (o *{{$tableNameSingular}}) UnmarshalJSON(data []byte) {
 //    return marshal.UnmarshalWrapper(o, data)
 // }
 

@@ -2,9 +2,21 @@ package marshal
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/curvegrid/sqlboiler/strmangle"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
+)
+
+var (
+	ethTransaction = reflect.TypeOf((*ethTypes.Transaction)(nil))
+	ethBlock       = reflect.TypeOf((*ethTypes.Block)(nil))
 )
 
 // MarshalJSONFilter iterates through an interface, constructs a map[string]interface{} with
@@ -35,6 +47,10 @@ func MarshalJSONFilter(o interface{}, includeFields []string, excludeFields []st
 			continue
 		}
 		fieldValue := objValue.Field(i)
+		if IsEmpty(fieldValue.Interface()) {
+			continue
+		}
+
 		keys := strings.Split(jsonKey, ",")
 
 		// Handle json tag according to json.Marshal
@@ -52,9 +68,26 @@ func MarshalJSONFilter(o interface{}, includeFields []string, excludeFields []st
 		keys[0] = ToSnakeCase(keys[0])
 
 		// Handle embedded field so the fields are in the proper layer in the JSON object
+		fmt.Printf("%+v %+v %+v %+v\n", fieldName, fieldValue.Kind(), fieldValue.Type(), field.PkgPath)
+		// TODO: Double check it works for embedded fields that aren't pointers
 		if field.Anonymous {
-			fieldValue = reflect.Indirect(fieldValue)
-			embeddedFields, err := MarshalJSONFilter(fieldValue.Interface(), includeFields, excludeFields)
+			embeddedFields := make(map[string]interface{})
+
+			// Handle go-ethereum structs
+			fieldType := fieldValue.Type()
+			switch {
+			case ethTransaction == fieldType:
+				// fieldValue = reflect.Indirect(fieldValue)
+				tx := handleTransaction(fieldValue.Interface().(*ethTypes.Transaction))
+				embeddedFields, err = MarshalJSONFilter(tx, includeFields, excludeFields)
+			case fieldValue.MethodByName("JSONFilter").IsValid(): // OR CHECK IF IT IMPLEMENTS FILTER INTERFACE ?
+				embeddedFields, err = fieldValue.Interface().(JSONFilter).JSONFilter(nil, nil)
+			default:
+				// only indirect if it's a pointer
+				fieldValue = reflect.Indirect(fieldValue)
+				embeddedFields, err = MarshalJSONFilter(fieldValue.Interface(), includeFields, excludeFields)
+			}
+			// Add embedded fields to the map that will be marshaled
 			if err != nil {
 				return nil, err
 			}
@@ -113,6 +146,10 @@ func ToSnakeCase(str string) string {
 	return strings.ToLower(snake)
 }
 
+func ToCamelCase(a string) (b string) {
+	return strmangle.CamelCase(strmangle.TitleCase(a))
+}
+
 func SetIfAvailable(oNew reflect.Value, field string, value *string) {
 	if !(value == nil) {
 		reflectedField := oNew.Elem().FieldByName(field)
@@ -128,17 +165,44 @@ func SetIfAvailable(oNew reflect.Value, field string, value *string) {
 	}
 }
 
-func UnmarshalWrapper(o interface{}, data []byte) {
-	// body := map[string]*string
+func UnmarshalWrapper(o interface{}, body map[string]*string) {
 	var structFieldName string
-	oType := reflect.TypeOf(o)
-	oNew := reflect.New(oType)
+	oValue := reflect.ValueOf(o)
 	for key, value := range body {
-		structFieldName = BoilCase(key)
-		SetIfAvailable(oNew, structFieldName, value)
+		structFieldName = ToCamelCase(key)
+		SetIfAvailable(oValue, structFieldName, value)
 	}
 }
 
-// func BoilCase(a string) (b string) {
-// 	return strmangle.CamelCase(strmangle.TitleCase(a))
-// }
+func handleTransaction(tx *ethTypes.Transaction) interface{} {
+	v, r, s := tx.RawSignatureValues()
+	res := &struct {
+		Nonce    hexutil.Uint64
+		GasPrice *hexutil.Big
+		Gas      hexutil.Uint64
+		To       *common.Address
+		Value    *hexutil.Big
+		Input    hexutil.Bytes
+		V        *hexutil.Big
+		R        *hexutil.Big
+		S        *hexutil.Big
+		Hash     common.Hash
+	}{
+		Nonce:    hexutil.Uint64(tx.Nonce()),
+		GasPrice: (*hexutil.Big)(tx.GasPrice()),
+		Gas:      hexutil.Uint64(tx.Gas()),
+		To:       tx.To(),
+		Value:    (*hexutil.Big)(tx.Value()),
+		Input:    tx.Data(),
+		V:        (*hexutil.Big)(v),
+		R:        (*hexutil.Big)(r),
+		S:        (*hexutil.Big)(s),
+		Hash:     tx.Hash(),
+	}
+
+	return res
+}
+
+type JSONFilter interface {
+	JSONFilter([]string, []string) (map[string]interface{}, error)
+}
