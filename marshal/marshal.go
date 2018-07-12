@@ -68,7 +68,7 @@ func MarshalJSONFilter(o interface{}, includeFields []string, excludeFields []st
 		keys[0] = ToSnakeCase(keys[0])
 
 		// Handle embedded field so the fields are in the proper layer in the JSON object
-		fmt.Printf("%+v %+v %+v %+v\n", fieldName, fieldValue.Kind(), fieldValue.Type(), field.PkgPath)
+		// fmt.Printf("%+v %+v %+v %+v\n", fieldName, fieldValue.Kind(), fieldValue.Type(), field.PkgPath)
 		// TODO: Double check it works for embedded fields that aren't pointers
 		if field.Anonymous {
 			embeddedFields := make(map[string]interface{})
@@ -146,32 +146,60 @@ func ToSnakeCase(str string) string {
 	return strings.ToLower(snake)
 }
 
-func ToCamelCase(a string) (b string) {
+func ToBoilCase(a string) (b string) {
 	return strmangle.CamelCase(strmangle.TitleCase(a))
 }
 
-func SetIfAvailable(oNew reflect.Value, field string, value *string) {
-	if !(value == nil) {
-		reflectedField := oNew.Elem().FieldByName(field)
-		reflectPointer := reflect.New(reflectedField.Type())
-		method := reflectPointer.MethodByName("Scan")
-		if method.IsValid() {
-			params := []reflect.Value{reflect.ValueOf(*value)}
-			method.Call(params)
-			reflectedField.Set(reflectPointer.Elem())
-		} else {
-			reflectedField.Set(reflect.ValueOf(*value))
+func SetIfAvailable(oValue reflect.Value, fieldName string, value *json.RawMessage) {
+	if value != nil {
+		field, valid := oValue.Type().FieldByName(fieldName) // get field value
+		fmt.Printf("-- fv? %v \nvalid? %+v \n num? %+v \n", field, valid, oValue.NumField())
+		fmt.Printf("Name %v Value %v\n", fieldName, string(*value))
+		fieldV := oValue.FieldByName(fieldName)
+
+		if !fieldV.IsValid() {
+			fmt.Println("MMMMOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO!!!!!!!!!!!!!!!!!!!!")
+			return
 		}
+		// Create new reflect.Value from value
+		newValue := reflect.New(fieldV.Type())
+		json.Unmarshal(*value, newValue.Interface())
+		newValue = newValue.Elem()
+
+		// set field to new Value
+		fieldV.Set(newValue)
 	}
 }
 
-func UnmarshalWrapper(o interface{}, body map[string]*string) {
+func UnmarshalWrapper(o interface{}, data []byte, specialNames map[string]string) error {
 	var structFieldName string
-	oValue := reflect.ValueOf(o)
-	for key, value := range body {
-		structFieldName = ToCamelCase(key)
-		SetIfAvailable(oValue, structFieldName, value)
+	oValue := reflect.ValueOf(o).Elem()
+
+	var body map[string]*json.RawMessage
+	err := json.Unmarshal(data, &body)
+	if err != nil {
+		return err
 	}
+
+	for i := 0; i < oValue.NumField(); i++ {
+		field := oValue.Field(i)
+		ft := oValue.Type().Field(i)
+		if field.Kind() == reflect.Ptr && ft.Anonymous && field.IsNil() {
+			fmt.Printf("%v nil %v addr %v\n", ft.Name, field.IsNil(), field.Type())
+			newField := reflect.New(field.Type().Elem())
+			field.Set(newField)
+			fmt.Printf("%v nil %v new field %v\n", ft.Name, field.IsNil(), newField.IsNil())
+		}
+	}
+
+	for key, value := range body {
+		if name, named := specialNames[key]; named {
+			key = name
+		}
+		structFieldName = ToBoilCase(key)
+		SetIfAvailable(oValue, structFieldName, value) // return if error
+	}
+	return nil
 }
 
 func handleTransaction(tx *ethTypes.Transaction) interface{} {

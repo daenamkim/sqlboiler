@@ -201,6 +201,7 @@ func newImporter() importer {
 			`"bytes"`,
 			`"reflect"`,
 			`"testing"`,
+			`"encoding/json"`,
 		},
 		thirdParty: importList{
 			`"github.com/curvegrid/sqlboiler/boil"`,

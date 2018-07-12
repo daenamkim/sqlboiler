@@ -13,11 +13,11 @@ func (o *{{$tableNameSingular}}) MarshalJSON() ([]byte, error) {
    return o.MarshalJSONFilter(nil, nil)
 }
 
-func (t *Transaction) JSONFilter(includeFields []string, excludeFields []string) (res map[string]interface{}, err error) {
+func (t *{{$tableNameSingular}}) JSONFilter(includeFields []string, excludeFields []string) (res map[string]interface{}, err error) {
 	return marshal.MarshalJSONFilter(t, nil, nil)
 }
 
-// func (o *{{$tableNameSingular}}) UnmarshalJSON(data []byte) {
-//    return marshal.UnmarshalWrapper(o, data)
-// }
+func (o *{{$tableNameSingular}}) UnmarshalJSON(data []byte) error {
+   return marshal.UnmarshalWrapper(o, data, nil)
+}
 
