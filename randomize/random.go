@@ -18,6 +18,15 @@ func randStr(s *Seed, ln int) string {
 	return string(str)
 }
 
+func randStrLower(s *Seed, ln int) string {
+	str := make([]byte, ln)
+	for i := 0; i < ln; i++ {
+		str[i] = byte(alphabetLowerAlpha[s.nextInt()%len(alphabetLowerAlpha)])
+	}
+
+	return string(str)
+}
+
 func randByteSlice(s *Seed, ln int) []byte {
 	str := make([]byte, ln)
 	for i := 0; i < ln; i++ {
