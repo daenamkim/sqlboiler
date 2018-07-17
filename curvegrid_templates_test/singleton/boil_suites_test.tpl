@@ -337,3 +337,13 @@ func TestUpsert(t *testing.T) {
   {{end -}}
   {{- end -}}
 }
+
+func TestMarshal(t *testing.T){
+    {{- range $index, $table := .Tables}}
+  {{- if $table.IsJoinTable -}}
+  {{- else -}}
+  {{- $tableName := $table.Name | plural | titleCase -}}
+  t.Run("{{$tableName}}", test{{$tableName}}Marshal)
+  {{end -}}
+  {{- end -}}
+}

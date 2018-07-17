@@ -152,13 +152,21 @@ func ToBoilCase(a string) (b string) {
 
 func SetIfAvailable(oValue reflect.Value, fieldName string, value *json.RawMessage) {
 	if value != nil {
-		field, valid := oValue.Type().FieldByName(fieldName) // get field value
-		fmt.Printf("-- fv? %v \nvalid? %+v \n num? %+v \n", field, valid, oValue.NumField())
-		fmt.Printf("Name %v Value %v\n", fieldName, string(*value))
+		// field, valid := oValue.Type().FieldByName(fieldName) // get field value
+		// fmt.Printf("-- fv? %v \nvalid? %+v \n num? %+v \n", field, valid, oValue.NumField())
+		// fmt.Printf("Name %v Value %v\n", fieldName, string(*value))
 		fieldV := oValue.FieldByName(fieldName)
+		fieldT, _ := oValue.Type().FieldByName(fieldName)
+		fmt.Printf("amt %v anon %v name%v\n", oValue.NumField(), fieldT.Anonymous, fieldName)
 
 		if !fieldV.IsValid() {
-			fmt.Println("MMMMOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO!!!!!!!!!!!!!!!!!!!!")
+			// fmt.Printf("%v is not valid\n", fieldName)
+			return
+		}
+
+		// if the field we found is an embedded field, then is has the same name as the struct
+		if fieldT.Anonymous {
+			SetIfAvailable(fieldV.Elem(), fieldName, value)
 			return
 		}
 		// Create new reflect.Value from value
@@ -185,10 +193,10 @@ func UnmarshalWrapper(o interface{}, data []byte, specialNames map[string]string
 		field := oValue.Field(i)
 		ft := oValue.Type().Field(i)
 		if field.Kind() == reflect.Ptr && ft.Anonymous && field.IsNil() {
-			fmt.Printf("%v nil %v addr %v\n", ft.Name, field.IsNil(), field.Type())
+			// fmt.Printf("%v nil %v addr %v\n", ft.Name, field.IsNil(), field.Type())
 			newField := reflect.New(field.Type().Elem())
 			field.Set(newField)
-			fmt.Printf("%v nil %v new field %v\n", ft.Name, field.IsNil(), newField.IsNil())
+			// fmt.Printf("%v nil %v new field %v\n", ft.Name, field.IsNil(), newField.IsNil())
 		}
 	}
 

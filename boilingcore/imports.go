@@ -202,11 +202,13 @@ func newImporter() importer {
 			`"reflect"`,
 			`"testing"`,
 			`"encoding/json"`,
+			`"fmt"`,
 		},
 		thirdParty: importList{
 			`"github.com/curvegrid/sqlboiler/boil"`,
 			`"github.com/curvegrid/sqlboiler/randomize"`,
 			`"github.com/curvegrid/sqlboiler/strmangle"`,
+			`"github.com/curvegrid/sqlboiler/marshal"`,
 		},
 	}
 
