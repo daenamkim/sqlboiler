@@ -2,7 +2,7 @@ package marshal
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"reflect"
 	"regexp"
 	"strings"
@@ -19,34 +19,70 @@ var (
 	ethBlock       = reflect.TypeOf((*ethTypes.Block)(nil))
 )
 
-// MarshalJSONFilter iterates through an interface, constructs a map[string]interface{} with
-// the appropriate fields according to include & exclude.
-// Excludes by column name when working with a model from sqlboiler, field name for go-ethereum.
-// It currently excludes "ID" column by default.
-func MarshalJSONFilter(o interface{}, includeFields []string, excludeFields []string) (res map[string]interface{}, err error) {
+// MarshalJSONStruct calls the JSONFilter with the appropriate filter lists and
+// marshals the result IFF the given interface is a struct
+func MarshalJSONStruct(o interface{}, exclude map[string]bool) (res []byte, err error) {
+	objValue := reflect.ValueOf(o)
+	objValue = reflect.Indirect(objValue) // For pointers
+	if objValue.Kind() != reflect.Struct {
+		return nil, errors.New("Invalid call to MarsahlJSONStruct on non-struct type")
+	}
+
+	jason, err := JSONFilter(o, exclude)
+	if err != nil {
+		return nil, err
+	}
+	JSON, err := json.Marshal(jason)
+	return JSON, err
+}
+
+// MarshalJSONSlice calls the MarshalJSONStruct with the appropriate filter lists and
+// marshals the result IFF the given interface is a slice of structs
+func MarshalJSONSlice(o interface{}, exclude map[string]bool) (res []byte, err error) {
+	objValue := reflect.ValueOf(o)
+	objValue = reflect.Indirect(objValue) // For pointers
+	if objValue.Kind() != reflect.Slice {
+		return nil, errors.New("Invalid call to MarsahlJSONStruct on non-struct type")
+	}
+
+	result := []map[string]interface{}{}
+	for i := 0; i < objValue.Len(); i++ {
+		jason, err := JSONFilter(objValue.Index(i).Interface(), exclude)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, jason)
+	}
+
+	JSON, err := json.Marshal(result)
+	return JSON, err
+}
+
+// JSONFilter iterates through an interface, constructs a map[string]interface{} with
+// the appropriate fields according to the exclude map.
+// Exclude is a map of field names and a boolean indicating whether or not to filter that field
+// Filter fields of structs inside given interface with the syntax "structField.field"
+func JSONFilter(o interface{}, exclude map[string]bool) (res map[string]interface{}, err error) {
 	objValue := reflect.ValueOf(o)
 	objValue = reflect.Indirect(objValue) // For pointers
 	objType := reflect.TypeOf(objValue.Interface())
+	// nextExclude is for filtering fields within structs within o
+	nextExclude := GetNextExclude(exclude)
 
 	result := make(map[string]interface{}, objType.NumField())
-	exclude := map[string]bool{"ID": true}
-	for _, f := range excludeFields {
-		exclude[f] = true
-	}
-	for _, f := range includeFields {
-		exclude[f] = false
-	}
 
 	for i := 0; i < objType.NumField(); i++ {
 		field := objType.Field(i)
 		fieldName := field.Name
 		jsonKey, jsonValid := field.Tag.Lookup("json")
-		// Check for a json tag
+
 		// PkgPath != "" means it is an exported field, which we want to marshal
 		if !jsonValid && !field.Anonymous && field.PkgPath != "" {
 			continue
 		}
 		fieldValue := objValue.Field(i)
+
+		// If the field is empty, skip it. TODO: Want a better check for differentiating empty arrays in some cases
 		if IsEmpty(fieldValue.Interface()) {
 			continue
 		}
@@ -62,30 +98,34 @@ func MarshalJSONFilter(o interface{}, includeFields []string, excludeFields []st
 			} else if keys[0] == "omitempty" || keys[0] == "" {
 				keys[0] = fieldName
 			}
-		} else if len(keys) == 2 && keys[1] == "omitempty" && IsEmpty(fieldValue.Interface()) {
-			continue
+		} else if len(keys) == 2 {
+			if keys[0] == "" && keys[1] == "omitempty" { // `json:",omitempty"`
+				keys[0] = fieldName
+			}
+			if keys[1] == "omitempty" && IsEmpty(fieldValue.Interface()) {
+				continue
+			}
 		}
 		keys[0] = ToSnakeCase(keys[0])
 
 		// Handle embedded field so the fields are in the proper layer in the JSON object
-		// fmt.Printf("%+v %+v %+v %+v\n", fieldName, fieldValue.Kind(), fieldValue.Type(), field.PkgPath)
-		// TODO: Double check it works for embedded fields that aren't pointers
 		if field.Anonymous {
 			embeddedFields := make(map[string]interface{})
 
-			// Handle go-ethereum structs
+			// Handle go-ethereum structs & Curvegrid structs
 			fieldType := fieldValue.Type()
 			switch {
 			case ethTransaction == fieldType:
-				// fieldValue = reflect.Indirect(fieldValue)
 				tx := handleTransaction(fieldValue.Interface().(*ethTypes.Transaction))
-				embeddedFields, err = MarshalJSONFilter(tx, includeFields, excludeFields)
-			case fieldValue.MethodByName("JSONFilter").IsValid(): // OR CHECK IF IT IMPLEMENTS FILTER INTERFACE ?
-				embeddedFields, err = fieldValue.Interface().(JSONFilter).JSONFilter(nil, nil)
+				embeddedFields, err = JSONFilter(tx, exclude)
+
+			// Handle filtering an embedded field inside a struct
+			case fieldValue.MethodByName("JSONFilter").IsValid():
+				embeddedFields, err = fieldValue.Interface().(Filterable).JSONFilter(exclude)
+
 			default:
-				// only indirect if it's a pointer
 				fieldValue = reflect.Indirect(fieldValue)
-				embeddedFields, err = MarshalJSONFilter(fieldValue.Interface(), includeFields, excludeFields)
+				embeddedFields, err = JSONFilter(fieldValue.Interface(), exclude)
 			}
 			// Add embedded fields to the map that will be marshaled
 			if err != nil {
@@ -97,8 +137,18 @@ func MarshalJSONFilter(o interface{}, includeFields []string, excludeFields []st
 			continue
 		}
 
-		// if it's in our exclude list, skip it. Do this after checking for Anonymous field.
+		// if it's in our exclude list, skip it. Do this after checking for Anonymous field in case
 		if exclude[fieldName] {
+			continue
+		}
+
+		// If it's a struct that implements JSONFilter interface, we filter it here. Otherwise let the json.Marshal handle it.
+		if fieldValue.MethodByName("JSONFilter").IsValid() {
+			val, err := fieldValue.Interface().(Filterable).JSONFilter(nextExclude)
+			if err != nil {
+				return nil, err
+			}
+			result[keys[0]] = val
 			continue
 		}
 
@@ -108,59 +158,48 @@ func MarshalJSONFilter(o interface{}, includeFields []string, excludeFields []st
 	return result, nil
 }
 
-// MarshalJSONWrapper calls the MarshalJSONFilter with the appropriate filter lists and
-// marshals the result.
-func MarshalJSONWrapper(o interface{}, includeFields []string, excludeFields []string) (res []byte, err error) {
-	jason, err := MarshalJSONFilter(o, includeFields, excludeFields)
+// UnmarshalWrapper handles unmarshaling JSON data into the o interface
+// specialNames are needed in the case the user overrides marshalings default naming from BoilCase to SnakeCase
+// specialNames are typed with SnakeCase (or custom name) as the key and BoilCase as the value
+func UnmarshalWrapper(o interface{}, data []byte, specialNames map[string]string) error {
+	var structFieldName string
+	oValue := reflect.ValueOf(o).Elem()
+
+	// Unmarshal to raw data so we can set individual fields
+	var body map[string]*json.RawMessage
+	err := json.Unmarshal(data, &body)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	JSON, err := json.Marshal(jason)
-	return JSON, err
-}
 
-// GetTypeName strips the path from a type.Name() and returns the type name
-func GetTypeName(typ reflect.Type) string {
-	typeName := typ.Name()
-	pkg := typ.PkgPath()
-	if pkg == "" {
-		return typeName
+	for i := 0; i < oValue.NumField(); i++ {
+		field := oValue.Field(i)
+		ft := oValue.Type().Field(i)
+		// if there is an anonymous field, we need to initialize it before we can add elements to it
+		if field.Kind() == reflect.Ptr && ft.Anonymous && field.IsNil() {
+			newField := reflect.New(field.Type().Elem())
+			field.Set(newField)
+		}
 	}
-	parts := strings.Split(pkg, "/")
-	return parts[len(parts)-1] + "." + typeName
+
+	for key, value := range body {
+		// Check if that field name was overridden by the user and supplied in special names
+		if name, named := specialNames[key]; named {
+			key = name
+		}
+		structFieldName = ToBoilCase(key)
+		SetIfAvailable(oValue, structFieldName, value)
+	}
+	return nil
 }
 
-// IsEmpty returns whether or not an interface is empty
-// 0 int, "" string, false bool, empty struct...
-func IsEmpty(x interface{}) bool {
-	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
-}
-
-// http://www.golangprograms.com/golang-package-examples/golang-convert-string-into-snake-case.html
-var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
-var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
-
-func ToSnakeCase(str string) string {
-	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
-	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
-	return strings.ToLower(snake)
-}
-
-func ToBoilCase(a string) (b string) {
-	return strmangle.CamelCase(strmangle.TitleCase(a))
-}
-
+// SetIfAvailable sets a field in a reflected object if possible
 func SetIfAvailable(oValue reflect.Value, fieldName string, value *json.RawMessage) {
 	if value != nil {
-		// field, valid := oValue.Type().FieldByName(fieldName) // get field value
-		// fmt.Printf("-- fv? %v \nvalid? %+v \n num? %+v \n", field, valid, oValue.NumField())
-		// fmt.Printf("Name %v Value %v\n", fieldName, string(*value))
 		fieldV := oValue.FieldByName(fieldName)
 		fieldT, _ := oValue.Type().FieldByName(fieldName)
-		fmt.Printf("amt %v anon %v name%v\n", oValue.NumField(), fieldT.Anonymous, fieldName)
 
 		if !fieldV.IsValid() {
-			// fmt.Printf("%v is not valid\n", fieldName)
 			return
 		}
 
@@ -179,37 +218,15 @@ func SetIfAvailable(oValue reflect.Value, fieldName string, value *json.RawMessa
 	}
 }
 
-func UnmarshalWrapper(o interface{}, data []byte, specialNames map[string]string) error {
-	var structFieldName string
-	oValue := reflect.ValueOf(o).Elem()
+//////////////////////////////// HELPERS
 
-	var body map[string]*json.RawMessage
-	err := json.Unmarshal(data, &body)
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < oValue.NumField(); i++ {
-		field := oValue.Field(i)
-		ft := oValue.Type().Field(i)
-		if field.Kind() == reflect.Ptr && ft.Anonymous && field.IsNil() {
-			// fmt.Printf("%v nil %v addr %v\n", ft.Name, field.IsNil(), field.Type())
-			newField := reflect.New(field.Type().Elem())
-			field.Set(newField)
-			// fmt.Printf("%v nil %v new field %v\n", ft.Name, field.IsNil(), newField.IsNil())
-		}
-	}
-
-	for key, value := range body {
-		if name, named := specialNames[key]; named {
-			key = name
-		}
-		structFieldName = ToBoilCase(key)
-		SetIfAvailable(oValue, structFieldName, value) // return if error
-	}
-	return nil
+// Filterable interface  is required for JSONFilter on structs that require special handlers ex. Blocks, Transactions
+type Filterable interface {
+	JSONFilter(map[string]bool) (map[string]interface{}, error)
 }
 
+// HandleTransaction is a special handler for go-ethereum transactions due to the hidden fields of a transaction struct
+// and is used when marshaling a transaction
 func handleTransaction(tx *ethTypes.Transaction) interface{} {
 	v, r, s := tx.RawSignatureValues()
 	res := &struct {
@@ -239,6 +256,36 @@ func handleTransaction(tx *ethTypes.Transaction) interface{} {
 	return res
 }
 
-type JSONFilter interface {
-	JSONFilter([]string, []string) (map[string]interface{}, error)
+// GetNextExclude gets the next exclude map for a struct that is a field of a struct
+func GetNextExclude(exclude map[string]bool) map[string]bool {
+	next := map[string]bool{}
+	for k, v := range exclude {
+		if s := strings.SplitN(k, ".", 2); len(s) == 2 {
+			next[s[1]] = v
+		}
+	}
+	return next
+}
+
+// IsEmpty returns whether or not an interface is empty
+// 0 int, "" string, false bool, empty struct...
+func IsEmpty(x interface{}) bool {
+	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
+}
+
+// For converting to SnakeCase
+// http://www.golangprograms.com/golang-package-examples/golang-convert-string-into-snake-case.html
+var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+
+// ToSnakeCase converts a string to snake case
+func ToSnakeCase(str string) string {
+	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
+	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
+	return strings.ToLower(snake)
+}
+
+// ToBoilCase converts a string to the format sqlboiler uses for field names
+func ToBoilCase(a string) (b string) {
+	return strmangle.CamelCase(strmangle.TitleCase(a))
 }

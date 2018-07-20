@@ -9,96 +9,60 @@ func test{{$tableNamePlural}}Marshal(t *testing.T) {
 
 	seed := randomize.NewSeed()
 	var err error
-	{{$varNameSingular}} := &{{$tableNameSingular}}{}
-	if err = randomize.Struct(seed, {{$varNameSingular}}, {{$varNameSingular}}DBTypes, true, {{$varNameSingular}}ColumnsWithDefault...); err != nil {
+	random{{$varNameSingular}} := &{{$tableNameSingular}}{}
+	if err = randomize.Struct(seed, random{{$varNameSingular}}, {{$varNameSingular}}DBTypes, true, {{$varNameSingular}}ColumnsWithDefault...); err != nil {
 		t.Errorf("Unable to randomize {{$tableNameSingular}} struct: %s", err)
 	}
 
-	// Prep Filter
-	includeFields := []string{"ID"}
-	var mWithID []byte
-	if mWithID, err = {{$varNameSingular}}.MarshalJSONFilter(includeFields, nil); err != nil {
+	/////////////////////// Test Models
+
+	// Ignore default ID exclusion, testing MarshalJSONStruct rather than json.Marshal
+	marshalFilter{{$varNameSingular}} := []byte{}
+	if marshalFilter{{$varNameSingular}}, err = marshal.MarshalJSONStruct(random{{$varNameSingular}}, nil); err != nil {
 		t.Errorf("Unable to marshal struct: %s", err)
 	}
 
-	fmt.Printf("{{$tableNameSingular}} marshaled 2 %+v\n", string(mWithID))
-
-	// Step 1: Check if adding ID back works
-	var rawWithID map[string]*json.RawMessage
-	err = json.Unmarshal(mWithID, &rawWithID)
+	// Unmarshal with ID
+	unmarshalFilter{{$varNameSingular}} := &{{$tableNameSingular}}{}
+	err = json.Unmarshal(marshalFilter{{$varNameSingular}}, &unmarshalFilter{{$varNameSingular}})
 	if err != nil {
-		t.Errorf("Couldn't unmarshal []byte to RawMessage: %s", err)
+		t.Errorf("Couldn't unmarshal struct: %s", err)
 	}
 
-	// Step 2: Prep Default json.Marshal
-	var mDefault []byte
-	if mDefault, err = json.Marshal({{$varNameSingular}}); err != nil {
-		t.Errorf("Unable to marshal struct: %s", err)
-	}
-	// fmt.Printf("\n\n%+v\n", {{$varNameSingular}})
-	fmt.Printf("{{$tableNameSingular}} marshaled orig %+v\n", string(mDefault))
-	var rawDefault map[string]*json.RawMessage
-	err = json.Unmarshal(mDefault, &rawDefault)
-	if err != nil {
-		t.Errorf("Couldn't unmarshal []byte to RawMessage: %s", err)
+	// Check if Unmarshaled struct is equal to original
+	if !reflect.DeepEqual(unmarshalFilter{{$varNameSingular}}, random{{$varNameSingular}}){
+		t.Errorf("Unmarshaled struct is not equal to original: %s", err)
 	}
 
-	// If ID was ignored in step 1, and then not filtered by step 2 
-	if _, valid := rawWithID["id"]; valid {
-		if _, valid = rawDefault["id"]; valid {
-			t.Errorf("Default ID wasn't filtered: %s", err)
-		}
+	/////////////////////// Test Embedded Structs 
+
+	embedded{{$varNameSingular}} := &embedded{{$tableNameSingular}}{
+		{{$tableNameSingular}}: unmarshalFilter{{$varNameSingular}},
 	}
 
-	{{$varNameSingular}}unmarshal := &{{$tableNameSingular}}{}
-	if err = json.Unmarshal(mWithID, {{$varNameSingular}}unmarshal); err != nil {
-		t.Errorf("Couldn't unmarshal: %s", err)
-	}
+	// Marshal embedded struct
+	marshalEmbedded{{$varNameSingular}} := []byte{}
+	marshalEmbedded{{$varNameSingular}}, err = json.Marshal(embedded{{$varNameSingular}})
 
-	fmt.Printf("{{$tableNameSingular}} unmarshaled unfiltered %+v\n", {{$varNameSingular}}unmarshal)
+	// Unmarshal embedded struct
+	unmarshalEmbedded{{$varNameSingular}} := &embedded{{$tableNameSingular}}{}
+	json.Unmarshal(marshalEmbedded{{$varNameSingular}}, unmarshalEmbedded{{$varNameSingular}})
 
-	// Check to see if ID added back and original struct are equivalent
-	if !reflect.DeepEqual({{$varNameSingular}}, {{$varNameSingular}}unmarshal) {
-		t.Errorf("Unmarshaled object is not equal: %v != %v", {{$varNameSingular}}, {{$varNameSingular}}unmarshal)
-	}
-
-
-
-	/////////////////////// 
-
-	eWithID := &embedded{{$tableNameSingular}}{
-		{{$tableNameSingular}}: {{$varNameSingular}}unmarshal,
-	}
-
-	var emWithID []byte
-	var emWithID2 []byte
-	emWithID, err = json.Marshal(eWithID)
-	emWithID2, err = marshal.MarshalJSONWrapper(eWithID, nil, nil)
-
-	fmt.Printf("{{$tableNameSingular}} emWithID %+v\n", eWithID)
-	fmt.Printf("{{$tableNameSingular}} emWithID json %+v\n", string(emWithID))
-	fmt.Printf("{{$tableNameSingular}} emWithID2 json %+v\n", string(emWithID2))
-
-	umWithID := &embedded{{$tableNameSingular}}{}
-	json.Unmarshal(emWithID, umWithID)
-
-	fmt.Printf("{{$tableNameSingular}} umWithID %+v\n", umWithID.{{$tableNameSingular}})
-
-	if !reflect.DeepEqual(umWithID, eWithID) {
-		t.Errorf("Unmarshaled embedded object is not equal: %+v != %+v", umWithID.{{$tableNameSingular}}, eWithID.{{$tableNameSingular}})
+	if !reflect.DeepEqual(embedded{{$varNameSingular}} , unmarshalEmbedded{{$varNameSingular}}) {
+		t.Errorf("Unmarshaled embedded object is not equal: %+v != %+v", embedded{{$varNameSingular}}.{{$tableNameSingular}}, unmarshalEmbedded{{$varNameSingular}}.{{$tableNameSingular}})
 	}
 
 }
 
-// Test embedding models ///////////////////
+///////////////////// Test embedding models
+
 type embedded{{$tableNameSingular}} struct{
 	*{{$tableNameSingular}}
 }
 
 func (o *embedded{{$tableNameSingular}}) MarshalJSON() ([]byte, error) {
-	includeFields := []string{}
-	excludeFields := []string{}
-	return marshal.MarshalJSONWrapper(o, includeFields, excludeFields)
+	exclude := map[string]bool{}
+	return marshal.MarshalJSONStruct(o, exclude)
 }
 
 func (o *embedded{{$tableNameSingular}}) UnmarshalJSON(data []byte) error {
