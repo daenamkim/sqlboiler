@@ -22,36 +22,36 @@ var (
 // MarshalJSONStruct calls the JSONFilter with the appropriate filter lists and
 // marshals the result IFF the given interface is a struct
 func MarshalJSONStruct(o interface{}, exclude map[string]bool) (res []byte, err error) {
-	objValue := reflect.ValueOf(o)
-	objValue = reflect.Indirect(objValue) // For pointers
-	if objValue.Kind() != reflect.Struct {
+	val := reflect.ValueOf(o)
+	val = reflect.Indirect(val) // For pointers
+	if val.Kind() != reflect.Struct {
 		return nil, errors.New("Invalid call to MarsahlJSONStruct on non-struct type")
 	}
 
-	jason, err := JSONFilter(o, exclude)
+	j, err := JSONFilter(o, exclude)
 	if err != nil {
 		return nil, err
 	}
-	JSON, err := json.Marshal(jason)
+	JSON, err := json.Marshal(j)
 	return JSON, err
 }
 
 // MarshalJSONSlice calls the MarshalJSONStruct with the appropriate filter lists and
 // marshals the result IFF the given interface is a slice of structs
 func MarshalJSONSlice(o interface{}, exclude map[string]bool) (res []byte, err error) {
-	objValue := reflect.ValueOf(o)
-	objValue = reflect.Indirect(objValue) // For pointers
-	if objValue.Kind() != reflect.Slice {
-		return nil, errors.New("Invalid call to MarsahlJSONStruct on non-struct type")
+	val := reflect.ValueOf(o)
+	val = reflect.Indirect(val) // For pointers
+	if val.Kind() != reflect.Slice {
+		return nil, errors.New("Invalid call to MarsahlJSONSlice on non-struct type")
 	}
 
 	result := []map[string]interface{}{}
-	for i := 0; i < objValue.Len(); i++ {
-		jason, err := JSONFilter(objValue.Index(i).Interface(), exclude)
+	for i := 0; i < val.Len(); i++ {
+		j, err := JSONFilter(val.Index(i).Interface(), exclude)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, jason)
+		result = append(result, j)
 	}
 
 	JSON, err := json.Marshal(result)
@@ -63,16 +63,16 @@ func MarshalJSONSlice(o interface{}, exclude map[string]bool) (res []byte, err e
 // Exclude is a map of field names and a boolean indicating whether or not to filter that field
 // Filter fields of structs inside given interface with the syntax "structField.field"
 func JSONFilter(o interface{}, exclude map[string]bool) (res map[string]interface{}, err error) {
-	objValue := reflect.ValueOf(o)
-	objValue = reflect.Indirect(objValue) // For pointers
-	objType := reflect.TypeOf(objValue.Interface())
+	val := reflect.ValueOf(o)
+	val = reflect.Indirect(val) // For pointers
+	oType := reflect.TypeOf(val.Interface())
 	// nextExclude is for filtering fields within structs within o
 	nextExclude := GetNextExclude(exclude)
 
-	result := make(map[string]interface{}, objType.NumField())
+	result := make(map[string]interface{}, oType.NumField())
 
-	for i := 0; i < objType.NumField(); i++ {
-		field := objType.Field(i)
+	for i := 0; i < oType.NumField(); i++ {
+		field := oType.Field(i)
 		fieldName := field.Name
 		jsonKey, jsonValid := field.Tag.Lookup("json")
 
@@ -80,33 +80,17 @@ func JSONFilter(o interface{}, exclude map[string]bool) (res map[string]interfac
 		if !jsonValid && !field.Anonymous && field.PkgPath != "" {
 			continue
 		}
-		fieldValue := objValue.Field(i)
+		fieldValue := val.Field(i)
 
 		// If the field is empty, skip it. TODO: Want a better check for differentiating empty arrays in some cases
 		if IsEmpty(fieldValue.Interface()) {
 			continue
 		}
 
-		keys := strings.Split(jsonKey, ",")
-
-		// Handle json tag according to json.Marshal
-		if jsonKey == "-," {
-			keys[0] = "-"
-		} else if len(keys) == 1 {
-			if keys[0] == "-" {
-				continue
-			} else if keys[0] == "omitempty" || keys[0] == "" {
-				keys[0] = fieldName
-			}
-		} else if len(keys) == 2 {
-			if keys[0] == "" && keys[1] == "omitempty" { // `json:",omitempty"`
-				keys[0] = fieldName
-			}
-			if keys[1] == "omitempty" && IsEmpty(fieldValue.Interface()) {
-				continue
-			}
+		keys, skip := ParseJSONKey(jsonKey, fieldName, fieldValue)
+		if skip {
+			continue
 		}
-		keys[0] = ToSnakeCase(keys[0])
 
 		// Handle embedded field so the fields are in the proper layer in the JSON object
 		if field.Anonymous {
@@ -225,6 +209,30 @@ type Filterable interface {
 	JSONFilter(map[string]bool) (map[string]interface{}, error)
 }
 
+// ParseJSONKey parses the jsonKey value of the field according to json.Marshals definition
+func ParseJSONKey(jsonKey, fieldName string, fieldValue reflect.Value) ([]string, bool) {
+	keys := strings.Split(jsonKey, ",")
+
+	if jsonKey == "-," {
+		keys[0] = "-"
+	} else if len(keys) == 1 {
+		if keys[0] == "-" {
+			return nil, true
+		} else if keys[0] == "omitempty" || keys[0] == "" {
+			keys[0] = fieldName
+		}
+	} else if len(keys) == 2 {
+		if keys[0] == "" && keys[1] == "omitempty" { // `json:",omitempty"`
+			keys[0] = fieldName
+		}
+		if keys[1] == "omitempty" && IsEmpty(fieldValue.Interface()) {
+			return nil, true
+		}
+	}
+	keys[0] = ToSnakeCase(keys[0])
+	return keys, false
+}
+
 // HandleTransaction is a special handler for go-ethereum transactions due to the hidden fields of a transaction struct
 // and is used when marshaling a transaction
 func handleTransaction(tx *ethTypes.Transaction) interface{} {
@@ -257,6 +265,9 @@ func handleTransaction(tx *ethTypes.Transaction) interface{} {
 }
 
 // GetNextExclude gets the next exclude map for a struct that is a field of a struct
+// Exclude is a map of field names and a boolean indicating whether or not to filter that field
+// The next exclude map is converting from format "structA.fieldB" = true to "fieldB" = true for
+// when we're marshaling structA
 func GetNextExclude(exclude map[string]bool) map[string]bool {
 	next := map[string]bool{}
 	for k, v := range exclude {

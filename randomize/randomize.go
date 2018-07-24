@@ -57,6 +57,8 @@ var (
 		"lseg", "macaddr", "path", "pg_lsn", "point",
 		"polygon", "txid_snapshot", "money", "hstore", "numeric",
 	}
+
+	MaxPortNum = 65535
 )
 
 // Seed is an atomic counter for pseudo-randomization structs. Using full
@@ -195,7 +197,7 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 		field.Set(reflect.ValueOf(value))
 		return nil
 	} else if fieldName == "HTTPEndpointPort" || fieldName == "WebsocketEndpointPort" {
-		value = null.NewInt(int(int32(s.nextInt()%65535+1)), true)
+		value = null.NewInt(int(int32(s.nextInt()%MaxPortNum+1)), true)
 		field.Set(reflect.ValueOf(value))
 		return nil
 	} else if fieldName == "Name" || fieldName == "NiceName" {

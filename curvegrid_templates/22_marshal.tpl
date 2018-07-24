@@ -20,7 +20,7 @@ func (o *{{$tableNameSingular}}Slice) MarshalJSONSlice(exclude map[string]bool) 
     return marshal.MarshalJSONSlice(o, exclude)
 }
 
-// JSONFilter is required to be able to filter this struct when it is an anonymous field in another struct
+// JSONFilter is required to be able to filter fields in this struct when it is an anonymous field in another struct
 // if there is a special case in the struct (private fields for example)
 func (t *{{$tableNameSingular}}) JSONFilter(exclude map[string]bool) (res map[string]interface{}, err error) {
 	return marshal.JSONFilter(t, exclude)

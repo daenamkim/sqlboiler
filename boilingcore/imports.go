@@ -168,7 +168,6 @@ func newImporter() importer {
 			`"strings"`,
 			`"sync"`,
 			`"time"`,
-			// `"encoding/json"`,
 		},
 		thirdParty: importList{
 			`"github.com/pkg/errors"`,
