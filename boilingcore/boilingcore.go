@@ -20,13 +20,13 @@ import (
 )
 
 const (
-	templatesDirectory          = "curvegrid_templates"
-	templatesSingletonDirectory = "curvegrid_templates/singleton"
+	templatesDirectory          = "templates"
+	templatesSingletonDirectory = "templates/singleton"
 
-	templatesTestDirectory          = "curvegrid_templates_test"
-	templatesSingletonTestDirectory = "curvegrid_templates_test/singleton"
+	templatesTestDirectory          = "templates_test"
+	templatesSingletonTestDirectory = "templates_test/singleton"
 
-	templatesTestMainDirectory = "curvegrid_templates_test/main_test"
+	templatesTestMainDirectory = "templates_test/main_test"
 )
 
 // State holds the global data needed by most pieces to run
