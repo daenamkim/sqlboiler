@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ann-kilzer/sqlboiler/boil"
+	"github.com/curvegrid/sqlboiler/boil"
 )
 
 var testEagerCounters struct {

@@ -8,8 +8,8 @@ import (
 
 	// Side-effect import sql driver
 
-	"github.com/ann-kilzer/sqlboiler/bdb"
-	"github.com/ann-kilzer/sqlboiler/strmangle"
+	"github.com/curvegrid/sqlboiler/bdb"
+	"github.com/curvegrid/sqlboiler/strmangle"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 )
@@ -415,7 +415,7 @@ func getArrayType(c bdb.Column) string {
 		return "types.Int64Array"
 	case "bytea":
 		return "types.BytesArray"
-	case "bit", "interval", "uuint", "bit varying", "character", "money", "character varying", "cidr", "inet", "macaddr", "text", "uuid", "xml":
+	case "bit", "interval", "uuint", "bit varying", "character", "money", "character varying", "cidr", "inet", "numeric", "macaddr", "text", "uuid", "xml":
 		return "types.StringArray"
 	case "boolean":
 		return "types.BoolArray"

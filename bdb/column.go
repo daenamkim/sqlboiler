@@ -3,7 +3,7 @@ package bdb
 import (
 	"strings"
 
-	"github.com/ann-kilzer/sqlboiler/strmangle"
+	"github.com/curvegrid/sqlboiler/strmangle"
 )
 
 // Column holds information about a database column.

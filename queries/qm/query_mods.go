@@ -1,6 +1,6 @@
 package qm
 
-import "github.com/ann-kilzer/sqlboiler/queries"
+import "github.com/curvegrid/sqlboiler/queries"
 
 // QueryMod to modify the query object
 type QueryMod func(q *queries.Query)

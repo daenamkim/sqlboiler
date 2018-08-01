@@ -16,8 +16,8 @@ import (
 
 	null "gopkg.in/volatiletech/null.v6"
 
-	"github.com/ann-kilzer/sqlboiler/strmangle"
-	"github.com/ann-kilzer/sqlboiler/types"
+	"github.com/curvegrid/sqlboiler/strmangle"
+	"github.com/curvegrid/sqlboiler/types"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
@@ -55,8 +55,10 @@ var (
 		"inet", "line", "uuid", "interval", "mediumint",
 		"json", "jsonb", "box", "cidr", "circle",
 		"lseg", "macaddr", "path", "pg_lsn", "point",
-		"polygon", "txid_snapshot", "money", "hstore",
+		"polygon", "txid_snapshot", "money", "hstore", "numeric",
 	}
+
+	MaxPortNum = 65535
 )
 
 // Seed is an atomic counter for pseudo-randomization structs. Using full
@@ -125,7 +127,7 @@ func Struct(s *Seed, str interface{}, colTypes map[string]string, canBeNull bool
 		}
 
 		fieldDBType := colTypes[fieldTyp.Name]
-		if err := randomizeField(s, fieldVal, fieldDBType, canBeNull); err != nil {
+		if err := randomizeField(s, fieldVal, fieldDBType, canBeNull, fieldTyp.Name); err != nil {
 			return err
 		}
 	}
@@ -158,7 +160,7 @@ func randDate(s *Seed) time.Time {
 
 // If canBeNull is true:
 //  The value has the possibility of being null or non-zero at random.
-func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bool) error {
+func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bool, fieldName string) error {
 	kind := field.Kind()
 	typ := field.Type()
 
@@ -184,6 +186,35 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 	// Validated columns always need to be set regardless of canBeNull,
 	// and they have to adhere to a strict value format.
 	foundValidated := strmangle.SetInclude(fieldType, validatedTypes)
+
+	// Custom handlers for fields with constraints
+	if fieldName == "HTTPEndpointProtocol" {
+		value = "https"
+		field.Set(reflect.ValueOf(value))
+		return nil
+	} else if fieldName == "WebsocketEndpointProtocol" {
+		value = "ws"
+		field.Set(reflect.ValueOf(value))
+		return nil
+	} else if fieldName == "HTTPEndpointPort" || fieldName == "WebsocketEndpointPort" {
+		value = null.NewInt(int(int32(s.nextInt()%MaxPortNum+1)), true)
+		field.Set(reflect.ValueOf(value))
+		return nil
+	} else if fieldName == "Name" || fieldName == "NiceName" {
+		if typ == typeNullString {
+			value = null.NewString(randStrLower(s, 2), true)
+			field.Set(reflect.ValueOf(value))
+			return nil
+		} else if kind == reflect.String {
+			value = randStrLower(s, 2)
+			field.Set(reflect.ValueOf(value))
+			return nil
+		}
+	} else if fieldName == "EndpointHost" || fieldName == "HTTPEndpointPath" || fieldName == "WebsocketEndpointPath" {
+		value = null.NewString(randStrLower(s, 2), true)
+		field.Set(reflect.ValueOf(value))
+		return nil
+	}
 
 	if foundValidated {
 		if kind == reflect.Struct {
@@ -239,7 +270,7 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 					field.Set(reflect.ValueOf(value))
 					return nil
 				}
-				if fieldType == "money" {
+				if fieldType == "money" || fieldType == "numeric" {
 					value = null.NewString(randMoney(s), true)
 					field.Set(reflect.ValueOf(value))
 					return nil
@@ -315,7 +346,7 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 					field.Set(reflect.ValueOf(value))
 					return nil
 				}
-				if fieldType == "money" {
+				if fieldType == "money" || fieldType == "numeric" {
 					value = randMoney(s)
 					field.Set(reflect.ValueOf(value))
 					return nil
@@ -433,7 +464,7 @@ func getArrayRandValue(s *Seed, typ reflect.Type, fieldType string) interface{} 
 			value := randTxID()
 			return types.StringArray{value, value}
 		}
-		if fieldType == "money" {
+		if fieldType == "money" || fieldType == "numeric" {
 			value := randMoney(s)
 			return types.StringArray{value, value}
 		}

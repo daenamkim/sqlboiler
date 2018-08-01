@@ -12,11 +12,11 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/curvegrid/sqlboiler/bdb"
+	"github.com/curvegrid/sqlboiler/bdb/drivers"
+	"github.com/curvegrid/sqlboiler/queries"
+	"github.com/curvegrid/sqlboiler/strmangle"
 	"github.com/pkg/errors"
-	"github.com/ann-kilzer/sqlboiler/bdb"
-	"github.com/ann-kilzer/sqlboiler/bdb/drivers"
-	"github.com/ann-kilzer/sqlboiler/queries"
-	"github.com/ann-kilzer/sqlboiler/strmangle"
 )
 
 const (
@@ -269,7 +269,7 @@ func (s *State) processReplacements() error {
 	return nil
 }
 
-var basePackage = "github.com/ann-kilzer/sqlboiler"
+var basePackage = "github.com/curvegrid/sqlboiler"
 
 func getBasePath(baseDirConfig string) (string, error) {
 	if len(baseDirConfig) > 0 {

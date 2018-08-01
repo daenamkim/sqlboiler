@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ann-kilzer/sqlboiler/bdb"
+	"github.com/curvegrid/sqlboiler/bdb"
 )
 
 // imports defines the optional standard imports and
@@ -171,25 +171,26 @@ func newImporter() importer {
 		},
 		thirdParty: importList{
 			`"github.com/pkg/errors"`,
-			`"github.com/ann-kilzer/sqlboiler/boil"`,
-			`"github.com/ann-kilzer/sqlboiler/queries"`,
-			`"github.com/ann-kilzer/sqlboiler/queries/qm"`,
-			`"github.com/ann-kilzer/sqlboiler/strmangle"`,
+			`"github.com/curvegrid/sqlboiler/boil"`,
+			`"github.com/curvegrid/sqlboiler/queries"`,
+			`"github.com/curvegrid/sqlboiler/queries/qm"`,
+			`"github.com/curvegrid/sqlboiler/strmangle"`,
+			`"github.com/curvegrid/sqlboiler/marshal"`,
 		},
 	}
 
 	imp.Singleton = mapImports{
 		"boil_queries": {
 			thirdParty: importList{
-				`"github.com/ann-kilzer/sqlboiler/boil"`,
-				`"github.com/ann-kilzer/sqlboiler/queries"`,
-				`"github.com/ann-kilzer/sqlboiler/queries/qm"`,
+				`"github.com/curvegrid/sqlboiler/boil"`,
+				`"github.com/curvegrid/sqlboiler/queries"`,
+				`"github.com/curvegrid/sqlboiler/queries/qm"`,
 			},
 		},
 		"boil_types": {
 			thirdParty: importList{
 				`"github.com/pkg/errors"`,
-				`"github.com/ann-kilzer/sqlboiler/strmangle"`,
+				`"github.com/curvegrid/sqlboiler/strmangle"`,
 			},
 		},
 	}
@@ -199,11 +200,13 @@ func newImporter() importer {
 			`"bytes"`,
 			`"reflect"`,
 			`"testing"`,
+			`"encoding/json"`,
 		},
 		thirdParty: importList{
-			`"github.com/ann-kilzer/sqlboiler/boil"`,
-			`"github.com/ann-kilzer/sqlboiler/randomize"`,
-			`"github.com/ann-kilzer/sqlboiler/strmangle"`,
+			`"github.com/curvegrid/sqlboiler/boil"`,
+			`"github.com/curvegrid/sqlboiler/randomize"`,
+			`"github.com/curvegrid/sqlboiler/strmangle"`,
+			`"github.com/curvegrid/sqlboiler/marshal"`,
 		},
 	}
 
@@ -223,7 +226,7 @@ func newImporter() importer {
 				`"github.com/kat-co/vala"`,
 				`"github.com/pkg/errors"`,
 				`"github.com/spf13/viper"`,
-				`"github.com/ann-kilzer/sqlboiler/boil"`,
+				`"github.com/curvegrid/sqlboiler/boil"`,
 			},
 		},
 		"boil_queries_test": {
@@ -236,7 +239,7 @@ func newImporter() importer {
 				`"regexp"`,
 			},
 			thirdParty: importList{
-				`"github.com/ann-kilzer/sqlboiler/boil"`,
+				`"github.com/curvegrid/sqlboiler/boil"`,
 			},
 		},
 		"boil_suites_test": {
@@ -261,8 +264,8 @@ func newImporter() importer {
 			thirdParty: importList{
 				`"github.com/pkg/errors"`,
 				`"github.com/spf13/viper"`,
-				`"github.com/ann-kilzer/sqlboiler/bdb/drivers"`,
-				`"github.com/ann-kilzer/sqlboiler/randomize"`,
+				`"github.com/curvegrid/sqlboiler/bdb/drivers"`,
+				`"github.com/curvegrid/sqlboiler/randomize"`,
 				`_ "github.com/lib/pq"`,
 			},
 		},
@@ -280,8 +283,8 @@ func newImporter() importer {
 			thirdParty: importList{
 				`"github.com/pkg/errors"`,
 				`"github.com/spf13/viper"`,
-				`"github.com/ann-kilzer/sqlboiler/bdb/drivers"`,
-				`"github.com/ann-kilzer/sqlboiler/randomize"`,
+				`"github.com/curvegrid/sqlboiler/bdb/drivers"`,
+				`"github.com/curvegrid/sqlboiler/randomize"`,
 				`_ "github.com/go-sql-driver/mysql"`,
 			},
 		},
@@ -297,8 +300,8 @@ func newImporter() importer {
 			thirdParty: importList{
 				`"github.com/pkg/errors"`,
 				`"github.com/spf13/viper"`,
-				`"github.com/ann-kilzer/sqlboiler/bdb/drivers"`,
-				`"github.com/ann-kilzer/sqlboiler/randomize"`,
+				`"github.com/curvegrid/sqlboiler/bdb/drivers"`,
+				`"github.com/curvegrid/sqlboiler/randomize"`,
 				`_ "github.com/denisenkom/go-mssqldb"`,
 			},
 		},
@@ -363,25 +366,25 @@ func newImporter() importer {
 			standard: importList{`"time"`},
 		},
 		"types.JSON": {
-			thirdParty: importList{`"github.com/ann-kilzer/sqlboiler/types"`},
+			thirdParty: importList{`"github.com/curvegrid/sqlboiler/types"`},
 		},
 		"types.BytesArray": {
-			thirdParty: importList{`"github.com/ann-kilzer/sqlboiler/types"`},
+			thirdParty: importList{`"github.com/curvegrid/sqlboiler/types"`},
 		},
 		"types.Int64Array": {
-			thirdParty: importList{`"github.com/ann-kilzer/sqlboiler/types"`},
+			thirdParty: importList{`"github.com/curvegrid/sqlboiler/types"`},
 		},
 		"types.Float64Array": {
-			thirdParty: importList{`"github.com/ann-kilzer/sqlboiler/types"`},
+			thirdParty: importList{`"github.com/curvegrid/sqlboiler/types"`},
 		},
 		"types.BoolArray": {
-			thirdParty: importList{`"github.com/ann-kilzer/sqlboiler/types"`},
+			thirdParty: importList{`"github.com/curvegrid/sqlboiler/types"`},
 		},
 		"types.StringArray": {
-			thirdParty: importList{`"github.com/ann-kilzer/sqlboiler/types"`},
+			thirdParty: importList{`"github.com/curvegrid/sqlboiler/types"`},
 		},
 		"types.Hstore": {
-			thirdParty: importList{`"github.com/ann-kilzer/sqlboiler/types"`},
+			thirdParty: importList{`"github.com/curvegrid/sqlboiler/types"`},
 		},
 	}
 
