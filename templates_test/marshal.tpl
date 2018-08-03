@@ -18,7 +18,7 @@ func test{{$tableNamePlural}}Marshal(t *testing.T) {
 
 	// Ignore default ID exclusion, testing MarshalJSONStruct rather than json.Marshal
 	marshalFilter{{$varNameSingular}} := []byte{}
-	if marshalFilter{{$varNameSingular}}, err = marshal.MarshalJSONStruct(random{{$varNameSingular}}, nil); err != nil {
+	if marshalFilter{{$varNameSingular}}, err = random{{$varNameSingular}}.MarshalJSONFilter(nil); err != nil {
 		t.Errorf("Unable to marshal struct: %s", err)
 	}
 
@@ -60,12 +60,10 @@ type embedded{{$tableNameSingular}} struct{
 	*{{$tableNameSingular}}
 }
 
-func (o *embedded{{$tableNameSingular}}) MarshalJSON() ([]byte, error) {
-	exclude := map[string]bool{}
-	return marshal.MarshalJSONStruct(o, exclude)
+func (o embedded{{$tableNameSingular}}) MarshalJSON() ([]byte, error) {
+	return marshal.ToJSON(o, nil)
 }
 
-func (o *embedded{{$tableNameSingular}}) UnmarshalJSON(data []byte) error {
-	specialNames := map[string]string{}
-	return marshal.UnmarshalWrapper(o, data, specialNames)
+func (o embedded{{$tableNameSingular}}) UnmarshalJSON(data []byte) error {
+	return marshal.UnmarshalWrapper(o, data, nil)
 }

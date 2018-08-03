@@ -2,7 +2,6 @@ package marshal
 
 import (
 	"encoding/json"
-	"errors"
 	"reflect"
 	"regexp"
 	"strings"
@@ -19,39 +18,99 @@ var (
 	ethBlock       = reflect.TypeOf((*ethTypes.Block)(nil))
 )
 
-// MarshalJSONStruct calls the JSONFilter with the appropriate filter lists and
-// marshals the result IFF the given interface is a struct
-func MarshalJSONStruct(o interface{}, exclude map[string]bool) (res []byte, err error) {
+func ToJSON(o interface{}, exclude map[string]bool) (res []byte, err error) {
 	val := reflect.ValueOf(o)
 	val = reflect.Indirect(val) // For pointers
-	if val.Kind() != reflect.Struct {
-		return nil, errors.New("Invalid call to MarsahlJSONStruct on non-struct type")
+	kind := val.Kind()
+	switch kind {
+	case reflect.Slice:
+		return jsonSlice(o, exclude)
+	case reflect.Struct:
+		return jsonStruct(o, exclude)
+	case reflect.Map:
+		return jsonMap(o, exclude)
+	default:
+		return json.Marshal(o)
+	}
+}
+
+// JSONStruct calls JSONFilter with the appropriate filter lists and marshals the result
+func jsonStruct(o interface{}, exclude map[string]bool) (res []byte, err error) {
+	val := reflect.ValueOf(o)
+	val = reflect.Indirect(val) // For pointers
+
+	var j map[string]interface{}
+	if val.MethodByName("JSONFilter").IsValid() {
+		j, err = val.Interface().(Filterable).JSONFilter(exclude)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		j, err = JSONFilter(o, exclude)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	j, err := JSONFilter(o, exclude)
-	if err != nil {
-		return nil, err
-	}
 	JSON, err := json.Marshal(j)
 	return JSON, err
 }
 
-// MarshalJSONSlice calls the MarshalJSONStruct with the appropriate filter lists and
-// marshals the result IFF the given interface is a slice of structs
-func MarshalJSONSlice(o interface{}, exclude map[string]bool) (res []byte, err error) {
+// JSONSlice calls JSONFilter with the appropriate filter lists and marshals the result
+func jsonSlice(o interface{}, exclude map[string]bool) (res []byte, err error) {
 	val := reflect.ValueOf(o)
 	val = reflect.Indirect(val) // For pointers
-	if val.Kind() != reflect.Slice {
-		return nil, errors.New("Invalid call to MarsahlJSONSlice on non-struct type")
-	}
 
 	result := []map[string]interface{}{}
 	for i := 0; i < val.Len(); i++ {
-		j, err := JSONFilter(val.Index(i).Interface(), exclude)
-		if err != nil {
-			return nil, err
+
+		itemVal := val.Index(i)
+		var j map[string]interface{}
+		if itemVal.IsNil() {
+			continue
+		} else if itemVal.MethodByName("JSONFilter").IsValid() {
+			j, err = itemVal.Interface().(Filterable).JSONFilter(exclude)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			j, err = JSONFilter(itemVal.Interface(), exclude)
+			if err != nil {
+				return nil, err
+			}
 		}
 		result = append(result, j)
+	}
+
+	JSON, err := json.Marshal(result)
+	return JSON, err
+}
+
+// JSONMap calls JSONFilter with the appropriate filter lists and marshals the result
+func jsonMap(o interface{}, exclude map[string]bool) (res []byte, err error) {
+	val := reflect.ValueOf(o)
+	val = reflect.Indirect(val) // For pointers
+
+	result := map[string]map[string]interface{}{}
+	keys := val.MapKeys()
+	for _, key := range keys {
+
+		itemVal := val.MapIndex(key)
+		var j map[string]interface{}
+		if itemVal.IsNil() {
+			continue
+		} else if itemVal.MethodByName("JSONFilter").IsValid() {
+			j, err = itemVal.Interface().(Filterable).JSONFilter(exclude)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			j, err = JSONFilter(itemVal.Interface(), exclude)
+			if err != nil {
+				return nil, err
+			}
+		}
+		result[key.String()] = j
 	}
 
 	JSON, err := json.Marshal(result)
@@ -67,6 +126,9 @@ func JSONFilter(o interface{}, exclude map[string]bool) (res map[string]interfac
 	val = reflect.Indirect(val) // For pointers
 	oType := reflect.TypeOf(val.Interface())
 	// nextExclude is for filtering fields within structs within o
+	if exclude == nil {
+		exclude = map[string]bool{}
+	}
 	nextExclude := GetNextExclude(exclude)
 
 	result := make(map[string]interface{}, oType.NumField())
@@ -148,6 +210,10 @@ func JSONFilter(o interface{}, exclude map[string]bool) (res map[string]interfac
 func UnmarshalWrapper(o interface{}, data []byte, specialNames map[string]string) error {
 	var structFieldName string
 	oValue := reflect.ValueOf(o).Elem()
+
+	if specialNames == nil {
+		specialNames = map[string]string{}
+	}
 
 	// Unmarshal to raw data so we can set individual fields
 	var body map[string]*json.RawMessage
