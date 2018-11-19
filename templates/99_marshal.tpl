@@ -24,4 +24,3 @@ func (o {{$tableNameSingular}}) MarshalJSONFilter(exclude map[string]bool) ([]by
 func (o {{$tableNameSingular}}) JSONFilter(exclude map[string]bool) (res map[string]interface{}, err error) {
 	return marshal.JSONFilter(o, exclude)
 }
-
