@@ -231,7 +231,6 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 						if r := recover(); r != nil {
 							err = errors.Errorf("Critical error generating new UUID")
 						}
-						err = errors.Errorf("Couldn't recover from UUID panic")
 					}()
 					value = null.NewString(randomUuid.String(), true)
 					field.Set(reflect.ValueOf(value))
@@ -311,7 +310,6 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 						if r := recover(); r != nil {
 							err = errors.Errorf("Critical error generating new UUID")
 						}
-						err = errors.Errorf("Couldn't recover from UUID panic")
 					}()
 					field.Set(reflect.ValueOf(value.String()))
 					return nil
@@ -439,7 +437,6 @@ func getArrayRandValue(s *Seed, typ reflect.Type, fieldType string) (i interface
 				if r := recover(); r != nil {
 					i = errors.Errorf("Critical error generating new UUID")
 				}
-				i = errors.Errorf("Couldn't recover from UUID panic")
 			}()
 			value := randomUuid.String()
 			return types.StringArray{value, value}
