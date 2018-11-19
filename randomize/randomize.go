@@ -160,7 +160,7 @@ func randDate(s *Seed) time.Time {
 
 // If canBeNull is true:
 //  The value has the possibility of being null or non-zero at random.
-func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bool, fieldName string) error {
+func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bool, fieldName string) (err error) {
 	kind := field.Kind()
 	typ := field.Type()
 
@@ -226,10 +226,13 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 					return nil
 				}
 				if fieldType == "uuid" {
-					randomUuid, err := uuid.NewV4()
-					if err != nil {
-						return err
-					}
+					randomUuid := uuid.NewV4()
+					defer func() {
+						if r := recover(); r != nil {
+							err = error.Error("Critical error generating new UUID")
+						}
+						err = error.Error("Couldn't recover from UUID panic")
+					}()
 					value = null.NewString(randomUuid.String(), true)
 					field.Set(reflect.ValueOf(value))
 					return nil
@@ -303,10 +306,13 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 					return nil
 				}
 				if fieldType == "uuid" {
-					value, err := uuid.NewV4()
-					if err != nil {
-						return err
-					}
+					value := uuid.NewV4()
+					defer func() {
+						if r := recover(); r != nil {
+							err = error.Error("Critical error generating new UUID")
+						}
+						err = error.Error("Couldn't recover from UUID panic")
+					}()
 					field.Set(reflect.ValueOf(value.String()))
 					return nil
 				}
@@ -413,7 +419,7 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 	return nil
 }
 
-func getArrayRandValue(s *Seed, typ reflect.Type, fieldType string) interface{} {
+func getArrayRandValue(s *Seed, typ reflect.Type, fieldType string) (i interface{}) {
 	fieldType = strings.TrimLeft(fieldType, "ARRAY")
 	switch typ {
 	case typeInt64Array:
@@ -428,10 +434,13 @@ func getArrayRandValue(s *Seed, typ reflect.Type, fieldType string) interface{} 
 			return types.StringArray{value, value}
 		}
 		if fieldType == "uuid" {
-			randomUuid, err := uuid.NewV4()
-			if err != nil {
-				return err
-			}
+			randomUuid := uuid.NewV4()
+			defer func() {
+				if r := recover(); r != nil {
+					i = error.Error("Critical error generating new UUID")
+				}
+				i = error.Error("Couldn't recover from UUID panic")
+			}()
 			value := randomUuid.String()
 			return types.StringArray{value, value}
 		}
