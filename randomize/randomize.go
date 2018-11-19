@@ -164,8 +164,6 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 	kind := field.Kind()
 	typ := field.Type()
 
-	fmt.Printf("\n---- val %v - type %v -  name %v", field, fieldType, fieldName)
-
 	if strings.HasPrefix(fieldType, "enum") {
 		enum, err := randEnumValue(s, fieldType)
 		if err != nil {
