@@ -18,6 +18,16 @@ func randStr(s *Seed, ln int) string {
 	return string(str)
 }
 
+func randAddr(s *Seed) string {
+	str := make([]byte, 42)
+	str[0] = byte(0)
+	str[1] = byte('x')
+	for i := 2; i < 42; i++ {
+		str[i] = byte(alphabetAll[s.nextInt()%16])
+	}
+	return string(str)
+}
+
 func randStrLower(s *Seed, ln int) string {
 	str := make([]byte, ln)
 	for i := 0; i < ln; i++ {
