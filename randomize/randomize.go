@@ -164,6 +164,8 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 	kind := field.Kind()
 	typ := field.Type()
 
+	fmt.Printf("\n---- val %v - type %v -  name %v", field, fieldType, fieldName)
+
 	if strings.HasPrefix(fieldType, "enum") {
 		enum, err := randEnumValue(s, fieldType)
 		if err != nil {
@@ -214,6 +216,17 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 		value = null.NewString(randStrLower(s, 2), true)
 		field.Set(reflect.ValueOf(value))
 		return nil
+	} else if fieldName == "EthAccount" || fieldName == "PublicAddress" {
+		if typ == typeNullString {
+			value = null.NewString("0xBaC1Cd4051c378bF900087CCc445d7e7d02ad745", true)
+			field.Set(reflect.ValueOf(value))
+			return nil
+		} else {
+			value = "0xBaC1Cd4051c378bF900087CCc445d7e7d02ad745"
+			field.Set(reflect.ValueOf(value))
+			return nil
+		}
+
 	}
 
 	if foundValidated {
