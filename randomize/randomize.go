@@ -428,7 +428,7 @@ func randomizeField(s *Seed, field reflect.Value, fieldType string, canBeNull bo
 	return nil
 }
 
-func getArrayRandValue(s *Seed, typ reflect.Type, fieldType string) (i interface{}) {
+func getArrayRandValue(s *Seed, typ reflect.Type, fieldType string) (randArray interface{}) {
 	fieldType = strings.TrimLeft(fieldType, "ARRAY")
 	switch typ {
 	case typeInt64Array:
@@ -446,7 +446,7 @@ func getArrayRandValue(s *Seed, typ reflect.Type, fieldType string) (i interface
 			randomUuid := uuid.NewV4()
 			defer func() {
 				if r := recover(); r != nil {
-					i = errors.Errorf("Critical error generating new UUID")
+					randArray = errors.Errorf("Critical error generating new UUID")
 				}
 			}()
 			value := randomUuid.String()
