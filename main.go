@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const sqlBoilerVersion = "2.7.3"
+const sqlBoilerVersion = "2.7.4"
 
 var (
 	flagConfigFile string
