@@ -1,6 +1,7 @@
 package randomize
 
 import (
+	"bytes"
 	"crypto/md5"
 	"fmt"
 	"math/rand"
@@ -16,6 +17,16 @@ func randStr(s *Seed, ln int) string {
 	}
 
 	return string(str)
+}
+
+func randAddr(s *Seed) string {
+	var buffer bytes.Buffer
+	buffer.WriteString("0")
+	buffer.WriteString("x")
+	for i := 2; i < 42; i++ {
+		buffer.WriteString(string(alphabetAll[s.nextInt()%16]))
+	}
+	return buffer.String()
 }
 
 func randStrLower(s *Seed, ln int) string {

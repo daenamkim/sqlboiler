@@ -24,8 +24,3 @@ func (o {{$tableNameSingular}}) MarshalJSONFilter(exclude map[string]bool) ([]by
 func (o {{$tableNameSingular}}) JSONFilter(exclude map[string]bool) (res map[string]interface{}, err error) {
 	return marshal.JSONFilter(o, exclude)
 }
-
-// UnmarshalJSON will unmarshal the JSON data into the struct {{$tableNameSingular}}
-func (o {{$tableNameSingular}}) UnmarshalJSON(data []byte) error {
-    return marshal.UnmarshalWrapper(o, data, nil)
- }
